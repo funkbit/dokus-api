@@ -113,7 +113,6 @@ class DokusService(object):
         self.add_resource('products', DokusService.ProductHandler)
         self.add_resource('draft_invoices', DokusService.DraftInvoiceHandler)
         self.add_resource('sent_invoices', DokusService.SentInvoiceHandler)
-        self.add_resource('vouchers', DokusService.VoucherHandler)
         
     def add_resource(self, name, handler):
         """
