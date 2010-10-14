@@ -1,10 +1,10 @@
 # dokus-api
 
-Dokus API is a REST interface to invoicing and timetracking with the Norwegian web app ([[http://dokus.no|Dokus]]). Most content in this project is in Norwegian.
+Dokus API is a REST interface to invoicing and timetracking with the Norwegian web app ([[Dokus|http://dokus.no]]). Most content in this project is in Norwegian.
 
 ## API-dokumentasjon
 
-Dokumentasjon for Dokus API finnes i [[http://github.com/funkbit/dokus-api/wiki|wiki-en]].
+Dokumentasjon for Dokus API finnes i [[wiki-en|http://github.com/funkbit/dokus-api/wiki]].
 
 ## Bibliotek og eksempelkode
 
