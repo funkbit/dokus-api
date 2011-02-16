@@ -1,25 +1,23 @@
 <?php
 /**
  * PHP client library for accessing the Dokus API (http://dokus.no/).
- * Implements all currently stable resources of the Dokus API, using lazy loading
- * of resources as they are requested.
- * Requires PHP 5.1.3 or newer.
+ * Implements all currently stable resources of the Dokus API.
+ * See sample.php for example usage. Requires PHP 5.1.3 or newer.
+ *
+ * TODO:
+ *   - Wrap responses in DokusResponse object
  *
  * @author Frode Danielsen, <frode@z-it.no>
- * @version 1.0
+ * @version 1.0, 2011-02-16
  */
 class DokusService {
 	const SERVICE_URL = 'https://%s.dokus.no';
 	const SERVICE_PORT = 443;
 
-	private static $resources = array(
-		'customers',
-		'customerGroups',
-		'products',
-		'draftInvoices',
-		'recurringInvoices',
-		'sentInvoices'
-	);
+	const VAT_REGULAR = 1;
+	const VAT_LOW = 2;
+	const VAT_PERSON = 3;
+	const VAT_NONE = 4;
 
 	private $debug = false;
 
@@ -28,7 +26,7 @@ class DokusService {
 	private $password;
 	private $subdomain;
 
-	// Resource access points. Private due to lazy loading through __get()
+	// Resource access point instances, created when a resource is queried
 	private $customersResource;
 	private $customerGroupsResource;
 	private $productsResource;
@@ -37,6 +35,9 @@ class DokusService {
 
 	/**
 	 * Constructs a new Dokus API client for a specific Dokus user account.
+	 * After creating a DokusService instance you can query specific resources using their resource name
+	 * as a property of the DokusService instance. For example to query the customers resource for all
+	 * customers you can call: $dokusService->customers->list().
 	 *
 	 * @param string $email     User email address.
 	 * @param string $password  User password.
@@ -112,7 +113,6 @@ class DokusService {
 		preg_match('/^HTTP\/1\.[01] (\d+)/', $headers, $match);
 		$status = $match[1];
 
-		// TODO: Wrap in DokusResponse object
 		return (object)array(
 			'status' => $status,
 			'data' => json_decode($body)
@@ -121,17 +121,17 @@ class DokusService {
 
 	/**
 	 * Access point for Dokus API resources which only creates new resource instances as needed (lazy loading).
-	 * See the $resources list for currently available resources.
 	 */
 	public function __get ($var) {
-		if (in_array($var, self::$resources)) {
-			$var = $var . 'Resource';
-			if (!isset($this->$var)) {
-				$class = 'Dokus' . ucfirst($var);
-				$this->$var = new $class($this);
+		$resource = $var . 'Resource';
+		if (property_exists($this, $resource)) {
+			if (!isset($this->$resource)) {
+				$class = 'Dokus' . ucfirst($resource);
+				$this->$resource = new $class($this);
 			}
-			return $this->$var;
+			return $this->$resource;
 		}
+		return null;
 	}
 }
 
@@ -139,7 +139,7 @@ class DokusService {
  * Base class for Dokus resources, implementing common convenience methods for fetching and saving data.
  */
 class DokusBaseResource {
-	private $service;
+	protected $service;
 
 	protected $path = '';
 	protected $respAttrSingle = '';
@@ -155,7 +155,7 @@ class DokusBaseResource {
 	}
 
 	public function find (array $criteria) {
-		$response = $this->service->request($this->path, 'GET', $criteria);
+		$response = $this->service->request($this->path . 'find/', 'GET', $criteria);
 		return $response->data !== null ? $response->data->{$this->respAttrMultiple} : null;
 	}
 
@@ -277,12 +277,13 @@ class DokusRecurringInvoicesResource extends DokusInvoicesResource {
 
 /**
  * Dokus Sent Invoices Resource.
- * Only supports fetching a list of sent invoices.
+ * Supports fething one or more sent invoices, creating credit or reminder invoices based on a sent invoice
+ * and adding or removing payments for a sent invoice.
  */
 class DokusSentInvoicesResource extends DokusInvoicesResource {
 	protected $path = '/invoices/sent/';
 	protected $respAttrSingle = 'sent_invoice';
-	protected $respAttrMultiple = 'sent_invoice';
+	protected $respAttrMultiple = 'sent_invoices';
 
 	public function send ($invoice, $byPost = false, $byEmail = false, $emailCopy1 = '', $emailCopy2 = '') {
 		throw new Exception("Cannot re-send a sent invoice.");
@@ -298,19 +299,24 @@ class DokusSentInvoicesResource extends DokusInvoicesResource {
 
 	public function createCreditInvoice ($invoice) {
 		$response = $this->service->request($this->path . $invoice->id . '/credit/create/', 'POST');
-		return $response->status == 200 ? $response->invoice : null;
+		return $response->status == 200 ? $response->data->invoice : null;
 	}
 
 	public function createReminderInvoice ($invoice) {
 		$response = $this->service->request($this->path . $invoice->id . '/reminder/create/', 'POST');
-		return $response->status == 200 ? $response->invoice : null;
+		return $response->status == 200 ? $response->data->invoice : null;
 	}
 
 	public function addPayment ($invoice, $payment) {
-		throw new Exception("Not implemented yet.");
+		$response = $this->service->request($this->path . $invoice->id . '/payments/create/', 'POST', $payment);
+		return $response->status == 200 ? $response->data->payment : null;
 	}
 
 	public function removePayment ($invoice, $payment) {
-		throw new Exception("Not implemented yet.");
+		if (is_array($payment)) {
+			$payment = (object)$payment;
+		}
+		$response = $this->service->request($this->path . $invoice->id . '/payments/' . $payment->id . '/delete/', 'POST');
+		return $response->status == 204;
 	}
 }
