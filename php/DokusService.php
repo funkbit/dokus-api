@@ -6,6 +6,7 @@
  *
  * TODO:
  *   - Wrap responses in DokusResponse object
+ *   - Possibly support PHP 5.2 DateTime instances instead of just date strings
  *
  * @author Frode Danielsen, <frode@z-it.no>
  * @version 1.0, 2011-02-16
