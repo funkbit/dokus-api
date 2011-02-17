@@ -6,6 +6,7 @@
  *
  * TODO:
  *   - Wrap responses in DokusResponse object
+ *   - Possibly provide errors for common cases (invalid credentials etc.)
  *   - Possibly support PHP 5.2 DateTime instances instead of just date strings
  *
  * @author Frode Danielsen, <frode@z-it.no>
@@ -108,7 +109,7 @@ class DokusService {
 		));
 
 		$response = curl_exec($req);
-		list($headers, $body) = explode("\r\n\r\n", $response);
+		list($headers, $body) = explode("\r\n\r\n", $response, 2);
 
 		// Find response status
 		preg_match('/^HTTP\/1\.[01] (\d+)/', $headers, $match);
