@@ -88,9 +88,12 @@ class DokusService {
 		if ($method == 'POST') {
 			curl_setopt($req, CURLOPT_POST, true);
 			$headers[] = 'Content-Type: application/json';
+			$data = '';
 			if (!empty($params)) {
-				curl_setopt($req, CURLOPT_POSTFIELDS, json_encode($params));
+				$data = json_encode($params);
+				curl_setopt($req, CURLOPT_POSTFIELDS, $data);
 			}
+			$headers[] = 'Content-Length: ' . strlen($data);
 		}
 		else {
 			curl_setopt($req, CURLOPT_HTTPGET, true);
