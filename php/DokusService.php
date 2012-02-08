@@ -82,7 +82,6 @@ class DokusService {
 
 		if ($this->debug === true) {
 			curl_setopt($req, CURLOPT_VERBOSE, true);
-			curl_setopt($req, CURLOPT_STDERR, STDOUT);
 		}
 
 		if ($method == 'POST') {
@@ -112,6 +111,11 @@ class DokusService {
 		));
 
 		$response = curl_exec($req);
+
+		if ($this->debug === true) {
+			echo $response;
+		}
+
 		list($headers, $body) = explode("\r\n\r\n", $response, 2);
 
 		// Find response status
@@ -244,13 +248,14 @@ class DokusInvoicesResource extends DokusBaseResource {
 	/**
 	 * Sends a draft invoice to the client.
 	 *
-	 * @param object $invoice The invoice to send.
+	 * @param mixed $invoice  Either an integer with the draft ID or a draft invoice object.
 	 * @param bool $byPost    TRUE for sending the invoice by post.
 	 * @param bool $byEmail   TRUE for sending the invoice by email.
 	 * @param string $emailCopy1 E-mail address for receiving a copy of the invoice sent.
 	 * @param string $emailCopy2 Extra e-mail address for receiving a copy of the invoice sent.
 	 */
 	public function send ($invoice, $byPost = false, $byEmail = false, $emailCopy1 = '', $emailCopy2 = '') {
+		$id = (is_numeric($invoice) ? $invoice : $invoice->id);
 		$params = array(
 			'send_by_post'       => $byPost,
             'send_by_email'      => $byEmail,
@@ -259,8 +264,8 @@ class DokusInvoicesResource extends DokusBaseResource {
             'send_copy2'         => ($emailCopy2 != ''),
             'send_copy2_address' => $emailCopy2,
 		);
-		// XXX: No response?
-		$this->service->request($this->path . $invoice->id . '/send/', 'POST', (object)$params);
+		$response = $this->service->request($this->path . $id . '/send/', 'POST', (object)$params);
+		return $response->data !== null ? $response->data->sent_invoice : null;
 	}
 }
 
@@ -302,26 +307,59 @@ class DokusSentInvoicesResource extends DokusInvoicesResource {
 		throw new Exception("Cannot modify sent invoices.");
 	}
 
+	/**
+	 * Create a credit invoice for a previously sent invoice.
+	 *
+	 * @param mixed $invoice Either an integer with the sent invoice ID or a sent invoice object.
+	 * @return object The credit invoice draft if succesfully created, or NULL.
+	 */
 	public function createCreditInvoice ($invoice) {
-		$response = $this->service->request($this->path . $invoice->id . '/credit/create/', 'POST');
+		$id = (is_numeric($invoice) ? $invoice : $invoice->id);
+		$response = $this->service->request($this->path . $id . '/credit/create/', 'POST');
 		return $response->status == 200 ? $response->data->invoice : null;
 	}
 
+	/**
+	 * Create a reminder invoice for a previously sent invoice.
+	 *
+	 * @param mixed $invoice Either an integer with the sent invoice ID or a sent invoice object.
+	 * @return object The reminder invoice draft if succesfully created, or NULL.
+	 */
 	public function createReminderInvoice ($invoice) {
-		$response = $this->service->request($this->path . $invoice->id . '/reminder/create/', 'POST');
+		$id = (is_numeric($invoice) ? $invoice : $invoice->id);
+		$response = $this->service->request($this->path . $id . '/reminder/create/', 'POST');
 		return $response->status == 200 ? $response->data->invoice : null;
 	}
 
+	/**
+	 * Add a payment to a sent invoice.
+	 *
+	 * @param mixed $invoice  Either an integer with the sent invoice ID or a sent invoice object.
+	 * @param object $payment The payment info to add.
+	 * @return object The payment object if succesfully created, or NULL.
+	 */
 	public function addPayment ($invoice, $payment) {
-		$response = $this->service->request($this->path . $invoice->id . '/payments/create/', 'POST', $payment);
-		return $response->status == 200 ? $response->data->payment : null;
-	}
-
-	public function removePayment ($invoice, $payment) {
+		$id = (is_numeric($invoice) ? $invoice : $invoice->id);
 		if (is_array($payment)) {
 			$payment = (object)$payment;
 		}
-		$response = $this->service->request($this->path . $invoice->id . '/payments/' . $payment->id . '/delete/', 'POST');
+		$response = $this->service->request($this->path . $id . '/payments/create/', 'POST', $payment);
+		return $response->status == 200 ? $response->data->payment : null;
+	}
+
+	/**
+	 * Remove a payment for a sent invoice.
+	 *
+	 * @param mixed $invoice Either an integer with the sent invoice ID or a sent invoice object.
+	 * @param object $payment Info about the payment to remove.
+	 * @return bool TRUE if the payment was succesfully removed, FALSE otherwise.
+	 */
+	public function removePayment ($invoice, $payment) {
+		$id = (is_numeric($invoice) ? $invoice : $invoice->id);
+		if (is_array($payment)) {
+			$payment = (object)$payment;
+		}
+		$response = $this->service->request($this->path . $id . '/payments/' . $payment->id . '/delete/', 'POST');
 		return $response->status == 204;
 	}
 }
