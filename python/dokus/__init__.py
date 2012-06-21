@@ -98,11 +98,10 @@ class DokusService(object):
     """
     
     # URL and port for the service
-    DEBUG = False
     SERVICE_URL = '%(subdomain)s.dokus.no'
     SERVICE_PORT = 443
 
-    def __init__(self, email, password, subdomain):
+    def __init__(self, email, password, subdomain, debug=False):
         """
         Initializes the client with the specified credentials.
         """
@@ -110,7 +109,8 @@ class DokusService(object):
         self.email = email
         self.password = password
         self.subdomain = subdomain
-
+        self.debug = debug
+        
         self.add_resource('customers', DokusService.CustomerHandler)
         self.add_resource('products', DokusService.ProductHandler)
         self.add_resource('draft_invoices', DokusService.DraftInvoiceHandler)
@@ -156,9 +156,9 @@ class DokusService(object):
         # Fetch and reserialize response
         response = connection.getresponse()
         data = response.read()
-        if self.DEBUG:
-            print response.status
-            print data
+        if self.debug:
+            print(response.status)
+            print(data)
         
         try:
             obj = json.loads(data, object_hook=DokusJSONDecoder, encoding='utf-8')
