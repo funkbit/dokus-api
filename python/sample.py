@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from datetime import date, timedelta
 from decimal import Decimal
 
-from pydokus import DokusService, DokusObject
+from dokus import DokusService, DokusObject
 
 # Replace email, password and subdomain with your proper credentials
 service = DokusService(email='username@example.com', password='password', subdomain='mycompany')
