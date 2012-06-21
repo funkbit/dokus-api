@@ -41,7 +41,7 @@ from decimal import Decimal
 
 class DokusObject(object):
     """
-    Base object for resources used with pyDokus.
+    Base object for resources used with pydokus.
     """
     
     def __init__(self, **kwargs):
@@ -53,9 +53,9 @@ class DokusJSONEncoder(json.JSONEncoder):
     """
     Supports serializing datetimes/dates/decimals as JSON.
     """
-
+    
     def default(self, obj):
-
+        
         if isinstance(obj, (date, datetime)):
             return obj.isoformat()
         elif isinstance(obj, DokusObject):
@@ -64,7 +64,7 @@ class DokusJSONEncoder(json.JSONEncoder):
             return unicode(obj)
         else:
             return json.JSONEncoder.default(self, obj)
-                
+
 def DokusJSONDecoder(d):
     """
     Parses dates/datetimes/decimals in decoded JSON.
@@ -89,18 +89,18 @@ def DokusJSONDecoder(d):
             setattr(obj, a, [obj(x) if isinstance(x, dict) else x for x in b])
         else:
             setattr(obj, a, obj(b) if isinstance(b, dict) else b)
-
+        
     return obj
 
 class DokusService(object):
     """
-    pyDokus client library for accessing Dokus API (http://dokus.no).
+    pydokus client library for accessing Dokus API (https://dokus.no).
     """
     
     # URL and port for the service
     SERVICE_URL = '%(subdomain)s.dokus.no'
     SERVICE_PORT = 443
-
+    
     def __init__(self, email, password, subdomain, debug=False):
         """
         Initializes the client with the specified credentials.
@@ -115,14 +115,14 @@ class DokusService(object):
         self.add_resource('products', DokusService.ProductHandler)
         self.add_resource('draft_invoices', DokusService.DraftInvoiceHandler)
         self.add_resource('sent_invoices', DokusService.SentInvoiceHandler)
-        
+    
     def add_resource(self, name, handler):
         """
         Initializes the handler with this service instance.
         """
-
+        
         setattr(self, name, handler(self))
-            
+    
     ############
     # REQUESTS #
     ############
@@ -131,13 +131,13 @@ class DokusService(object):
         """
         Performs an HTTP request, with the specified parameters and method.
         """
-
+        
         # Prepare connection and construct authorization header
         connection = httplib.HTTPSConnection(self.SERVICE_URL % { 'subdomain': self.subdomain }, self.SERVICE_PORT)
         auth = 'Basic ' + string.strip(base64.encodestring(self.email + ':' + self.password)) 
-
+        
         if method == 'GET':
-
+            
             params = self.url_serialize(params)
             connection.request(method, url + '?' + params, None, {
                 'Accept': 'application/json',
@@ -152,10 +152,12 @@ class DokusService(object):
                 'Content-Type': 'application/json',
                 'Authorization': auth,
             })
-            
+        
         # Fetch and reserialize response
         response = connection.getresponse()
         data = response.read()
+        
+        # Optional debug output
         if self.debug:
             print(response.status)
             print(data)
@@ -166,7 +168,7 @@ class DokusService(object):
             obj = None
         
         return response.status, obj
-
+    
     def _list(self, url, criteria=None, retattr=None):
         """
         Gets the resources at the specified URL, optionally filtered by criteria.
@@ -188,13 +190,13 @@ class DokusService(object):
              return getattr(data, retattr) if status == 200 else None
         else:
             return data if status == 200 else None
-            
+    
     def _save(self, url, obj, retattr=None, extra_params={}):
         """
         Creates/updates the specified resource at the URL.
         Creation/update is done based on if the ID of the resource is set.
         """
-
+        
         # Create or update object?
         params = extra_params
         if hasattr(obj, 'id'):
@@ -208,7 +210,7 @@ class DokusService(object):
              return getattr(data, retattr) if status == 200 else None
         else:
             return data if status == 200 else None
-
+    
     def _delete(self, url, obj, extra_params={}):
         """
         Deletes the specified resource at the URL and ID.
@@ -222,13 +224,13 @@ class DokusService(object):
         params['id'] = obj.id
         url = url % params
         status, data = self._request(url, method='POST')
-
+        
         return (status == 204)
-       
+    
     ###############
     # SERIALIZERS #
     ###############
-
+    
     def url_serialize(self, obj):
         """
         Returns the specified dictionary as a URL encoded string, suitable for HTTP GET.
@@ -240,14 +242,14 @@ class DokusService(object):
         params = []
         for key, value in obj.items():
             params.append((key, value))
-
+        
         return urllib.urlencode(params)
-
+    
     def json_serialize(self, obj):
         """
         Returns the specified object encoded as JSON, suitable for HTTP POST.
         """
-
+        
         if not obj:
             return '{}'
         
@@ -255,18 +257,18 @@ class DokusService(object):
             obj = obj.__dict__
         
         return json.dumps(obj, cls=DokusJSONEncoder)
-            
+    
     #####################
     # RESOURCE HANDLERS #
     #####################
-
+    
     class BaseHandler(object):
         """
         Base class for implementing handlers, providing resource operations.
         Handlers override URLs and attributes to provide access to specific resources, and
         can add specific methods on resources as needed.
         """
-
+        
         url = ''
         retattr_single = ''
         retattr_multi = ''
@@ -283,7 +285,7 @@ class DokusService(object):
             return self.service._save(self.url, obj, retattr=self.retattr_single)
         def delete(self, obj): 
             return self.service._delete(self.url + unicode(obj.id) + '/delete/', obj)
-
+    
     class CustomerHandler(BaseHandler):
         
         url = '/customers/'
@@ -297,11 +299,11 @@ class DokusService(object):
         retattr_multi = 'groups'
     
     class ProductHandler(BaseHandler):
-
+        
         url = '/products/'
         retattr_single = 'product'
         retattr_multi = 'products'
-
+    
     class DraftInvoiceHandler(BaseHandler):
         
         url = '/invoices/'
@@ -320,7 +322,7 @@ class DokusService(object):
             })
     
     class RecurringInvoiceHandler(BaseHandler):
-
+        
         url = '/invoices/recurring/'
         retattr_single = 'invoice'
         retattr_multi = 'recurring_invoices'
@@ -335,36 +337,36 @@ class DokusService(object):
                 'send_copy2': (email_copy2 != ''),
                 'send_copy2_address': email_copy2,
             })
-        
+    
     class SentInvoiceHandler(BaseHandler):
-
+        
         url = '/invoices/sent/'
         retattr_single = 'sent_invoice'
         retattr_multi = 'sent_invoices'
-
+        
         def save(self, obj):
             
             raise Exception('Cannot modify sent invoices.')
-
+        
         def delete(self, obj):
             
             raise Exception('Cannot modify sent invoices.')
-
+        
         def create_credit_invoice(self, invoice):
             
             status, data = self.service._request(self.url + ('%d/credit/create/' % invoice.id), method='POST')
             return data.invoice if status == 200 else None
-            
+        
         def create_reminder_invoice(self, invoice):
             
             status, data = self.service._request(self.url + ('%d/reminder/create/' % invoice.id), method='POST')
             return data.invoice if status == 200 else None
-            
+        
         def add_payment(self, invoice, payment):
             
             status, data = self.service._request(self.url + ('%d/payments/create/' % invoice.id), method='POST', params=payment)
             return data.payment if status == 200 else None
-            
+        
         def remove_payment(self, invoice, payment):
             
             status, data = self.service._request(self.url + ('%d/payments/%d/delete/' % (invoice.id, payment.id)), method='POST')
