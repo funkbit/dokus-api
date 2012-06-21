@@ -27,19 +27,21 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-from datetime import timedelta
-from pydokus import *
+from datetime import date, timedelta
+from decimal import Decimal
+
+from pydokus import DokusService, DokusObject
 
 # Replace email, password and subdomain with your proper credentials
-service = DokusService(email='bruker@dokus.no', password='passord', subdomain='mittfirma')
+service = DokusService(email='username@example.com', password='password', subdomain='mycompany')
 
 # List names and e-mail address for all customers
 for customer in service.customers.list():
-    print "Customer name: %s, email: %s" % (customer.name, customer.email)
+    print("Customer name: %s, email: %s" % (customer.name, customer.email))
     
 # List all products
 for product in service.products.list():
-    print "Product name: %s, price: %s" % (product.name, product.price)
+    print("Product name: %s, price: %s" % (product.name, product.price))
 
 # Creates a new customer
 new_customer = DokusObject(
@@ -50,7 +52,7 @@ new_customer = DokusObject(
 )
 
 new_customer = service.customers.save(new_customer)
-print "Created customer with ID %d" % new_customer.id
+print("Created customer with ID %d" % new_customer.id)
 
 # Create an invoice draft
 invoice = DokusObject(
@@ -87,14 +89,14 @@ invoice = DokusObject(
 )
 
 invoice = service.draft_invoices.save(invoice)
-print "Created draft invoice with ID %d" % invoice.id
+print("Created draft invoice with ID %d" % invoice.id)
 
 # Send the invoice (set send_enabled to True to send invoice)
 send_enabled = False
 if send_enabled:
     service.draft_invoices.send(invoice, send_by_email=True, send_by_post=False, email_copy1='kopi@mittfirma.no')
-    print "The invoice has been sent to %s!" % invoice.recipient_email
+    print("The invoice has been sent to %s!" % invoice.recipient_email)
 
 # Lists the invoice numbers of all sent invoices
 for sent_invoice in service.sent_invoices.list():
-    print "Invoice no. %d, sent %s" % (sent_invoice.invoice_number, sent_invoice.sent_date)
+    print("Invoice no. %d, sent %s" % (sent_invoice.invoice_number, sent_invoice.sent_date))
