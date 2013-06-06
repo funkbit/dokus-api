@@ -15,12 +15,12 @@ setup(
     version=__version__,
     description='pydokus is Python module for interacting with the Dokus REST API.',
     long_description=open('README.md').read(),
-    author='Funkbit AS',
+    author='Funkbit',
     author_email='post@funkbit.no',
     url='https://github.com/funkbit/dokus-api',
-    packages=['dokus',],
+    packages=['dokus', ],
     license='BSD',
-    classifiers = (
+    classifiers=(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
